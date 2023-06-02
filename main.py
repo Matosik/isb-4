@@ -1,4 +1,33 @@
 import hashlib
+import logging 
+import multiprocessing
+logging.basicConfig(level="DEBUG")
+def luna(card: int):
+    #one step
+    card = str(card)
+    card = card[::-1]
+    card = list(card)
+    logging.info(card)
+    #two step
+    for i in range(1,len(card),2):
+        card[i] = str(int(card[i])*2)
+        if(int(card[i])>= 10):
+            num = int(card[i]) 
+            card[i]= str(num%10)
+            num//=10
+            card[i]= str(int(card[i])+num%10)
+    logging.info(card)
+    #three step 
+    summ =0
+    for i in range(len(card)):
+        summ+=int(card[i])
+    logging.info(summ)
+    if(summ%10==0):
+        logging.info("Номер карты является корректным")
+        return True
+    else:
+        logging.info("Номер карты не является корректным")
+        return False
 
 
 def compute_hash(data:int):
@@ -33,8 +62,14 @@ def my_plan():
                 good_card = card
                 flag = True
         i += 1
-    print("good card = ", good_card)  # 547905 415657 2301
+    if(flag == False):
+        logging.info("Карта не найдена")
+    else:
+        logging.info(f"Найденая карта: {good_card}")  # 547905 415657 2301
+        luna(good_card)
+
 
 
 if __name__ == '__main__':
-    my_plan()
+    luna(5479054156572301)
+    logging.info(compute_hash(5479054156572301))
