@@ -1,10 +1,10 @@
 import hashlib
 import logging
-from CONFIG import CONFIG
+import json
 logging.basicConfig(level="DEBUG")
 
 
-def compute_hash(card: int) -> int:
+def compute_hash(card: int, CONFIG) -> int:
     """Функция делает проверку хэша по номеру карты
 
     Args:

@@ -2,15 +2,14 @@ import multiprocessing as mp
 import sys
 import time
 import re
-
+import json
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (QApplication, QLabel, QMainWindow,
                              QProgressBar, QPushButton)
-
+import functools
 from charting import charting
 from other import luna, compute_hash
-from CONFIG import CONFIG
 
 
 class Window(QMainWindow):
@@ -21,13 +20,15 @@ class Window(QMainWindow):
         self.setWindowTitle('Поиск номера банковской карты')
         self.setFixedSize(600, 400)
         self.size = 1
+        with open("setting.json") as json_file:
+            self.setting = json.load(json_file)
         self.background = QLabel(self)
         self.background.setGeometry(0, 0, 600, 400)
         self.background.setPixmap(QPixmap("background.jpg").scaled(600, 400))
         self.background.setStyleSheet("background-color: #B0E0E6;")
         self.info = QLabel(self)
         self.info.setText("Известная часть карты:" +
-                          CONFIG["bins"][0]+" ****** " + CONFIG["last_number"])
+                          self.setting["bins"][0]+" ****** " + self.setting["last_number"])
         self.info.setGeometry(150, 10, 300, 50)
         self.info1 = QLabel(self)
         self.info2 = QLabel(self)
@@ -76,21 +77,23 @@ class Window(QMainWindow):
         Args:
             start (float): время начала поиска
         """
+        compute_hash_partial = functools.partial(compute_hash, CONFIG=self.setting)
         self.info.setText("\tИнициализация всех карт")
         start = time.time()
         self.progress.show()
         cards = []
         for i in range(0, 1000000):
             mid = str(i).zfill(6)
-            for j in range(len(CONFIG["bins"])):
-                card = (CONFIG["bins"][j] + mid + CONFIG["last_number"])
+            for j in range(len(self.setting["bins"])):
+                card = (self.setting["bins"][j] + mid +
+                        self.setting["last_number"])
                 cards.append(card)
                 self.progress.setValue(int((i+1)*50/10**6))
                 QApplication.processEvents()
 
         with mp.Pool(self.size) as p:
             self.progress.setValue(67)
-            results = p.map(compute_hash, cards)
+            results = p.map(compute_hash_partial, cards)
         self.info.setText("\t Сверяем хэшы карт")
         for result, card in zip(results, cards):
             self.progress.setValue(85)
@@ -113,7 +116,6 @@ class Window(QMainWindow):
         end = time.time() - start
         self.result_card = result
         self.progress.setValue(100)
-        # 5479 0541 5657 2301
         result_text = f'Расшифрованный номер: {str(result)[0:4]} {str(result)[4:8]} {str(result)[8:12]} {str(result)[12:]}\n'
         result_text += f'Проверка на алгоритм Луна: {luna(result)}\n'
         result_text += f'Время: {end:.2f} секунд'
@@ -124,11 +126,13 @@ class Window(QMainWindow):
         """Функция отрисовки графика
         """
         cards = []
+        compute_hash_partial = functools.partial(compute_hash, CONFIG=self.setting)
         self.info.setText("Инициализация всех карт")
         for i in range(0, 1000000):
             mid = str(i).zfill(6)
-            for j in range(len(CONFIG["bins"])):
-                card = (CONFIG["bins"][j] + mid + CONFIG["last_number"])
+            for j in range(len(self.setting["bins"])):
+                card = (self.setting["bins"][j] + mid +
+                        self.setting["last_number"])
                 cards.append(card)
         values = []
         for cpu in range(1, mp.cpu_count()+1):
@@ -137,7 +141,7 @@ class Window(QMainWindow):
                 f"Подождите идет процес оценки времени с {cpu} core")
             with mp.Pool(cpu)as p:
 
-                results = p.map(compute_hash, cards)
+                results = p.map(compute_hash_partial, cards)
                 for result, card in zip(results, cards):
                     if result:
                         end = time.time() - start
@@ -145,6 +149,7 @@ class Window(QMainWindow):
                         p.terminate()
                         break
         charting(values)
+        self.info.setText("График готов")
 
 
 if __name__ == "__main__":
