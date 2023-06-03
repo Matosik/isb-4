@@ -1,6 +1,6 @@
 import hashlib
 import logging
-import json
+
 logging.basicConfig(level="DEBUG")
 
 
@@ -34,11 +34,9 @@ def luna(card: int) -> bool:
         bool: результат проверки
     """
     logging.info(f"Запущен алгоритм луна с картой {card}")
-    # one step
     card = str(card)
     card = card[::-1]
     card = list(card)
-    # two step
     for i in range(1, len(card), 2):
         card[i] = str(int(card[i])*2)
         if (int(card[i]) >= 10):
@@ -46,7 +44,6 @@ def luna(card: int) -> bool:
             card[i] = str(num % 10)
             num //= 10
             card[i] = str(int(card[i])+num % 10)
-    # three step
     summ = 0
     for i in range(len(card)):
         summ += int(card[i])
